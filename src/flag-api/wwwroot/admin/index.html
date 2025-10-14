@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>🚩 Feature Flags Admin - v2.0</title>
+    <style>
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .api-section {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f1f5f9;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .endpoint {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 1.5rem;
+        }
+
+        .endpoint:last-child {
+            border-bottom: none;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-right: 1rem;
+        }
+
+        .method.get { background: #10b981; color: white; }
+        .method.post { background: #3b82f6; color: white; }
+        .method.put { background: #f59e0b; color: white; }
+        .method.delete { background: #ef4444; color: white; }
+
+        .endpoint-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .endpoint-desc {
+            color: #64748b;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button.secondary {
+            background: #6b7280;
+        }
+
+        button.secondary:hover {
+            background: #4b5563;
+        }
+
+        button.danger {
+            background: #ef4444;
+        }
+
+        button.danger:hover {
+            background: #dc2626;
+        }
+
+        .response {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .auth-bar {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .auth-bar.authenticated {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+
+        .auth-bar label {
+            margin-bottom: 0.5rem;
+            color: #92400e;
+            font-weight: 600;
+        }
+
+        .auth-bar.authenticated label {
+            color: #065f46;
+        }
+
+        .auth-row {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .auth-input {
+            flex: 1;
+        }
+
+        .auth-status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-left: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .auth-status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .auth-status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .auth-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .disabled-overlay {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        .disabled-overlay::before {
+            content: "🔒 Enter API Key to unlock functionality";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            border: 2px solid #f59e0b;
+            color: #92400e;
+            font-weight: 600;
+            z-index: 10;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚩 Feature Flags API Admin</h1>
+    </div>
+
+    <div class="container">
+        <!-- Authentication -->
+        <div class="auth-bar" id="authBar">
+            <div class="auth-row">
+                <div class="auth-input">
+                    <label for="apiKey">🔑 API Key (Required for all operations)</label>
+                    <input type="password" id="apiKey" placeholder="Enter your admin API key...">
+                </div>
+                <button onclick="authenticateUser()" id="authButton">🔓 Authenticate</button>
+            </div>
+            <div id="authStatus" class="auth-status pending">Not authenticated</div>
+        </div>
+
+        <!-- Main Content (will be disabled until authenticated) -->
+        <div id="mainContent" class="disabled-overlay">
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('flags')">🚩 Feature Flags</div>
+            <div class="tab" onclick="showTab('environments')">🌍 Environments</div>
+            <div class="tab" onclick="showTab('evaluation')">🧪 Test Evaluation</div>
+            <div class="tab" onclick="showTab('apikeys')">🔑 API Keys</div>
+            <div class="tab" onclick="showTab('audit')">📊 Audit Logs</div>
+        </div>
+
+        <!-- Feature Flags Tab -->
+        <div id="tab-flags" class="tab-content active">
+            <div class="api-section">
+                <div class="section-header">Feature Flag Operations</div>
+                
+                <!-- Get All Flags -->
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span>
+                        Get All Feature Flags
+                    </div>
+                    <div class="endpoint-desc">Retrieve all feature flags, optionally filtered by environment</div>
+                    <div class="form-group">
+                        <label for="getFlags_env">Environment (optional)</label>
+                        <select id="getFlags_env">
+                            <option value="">All environments</option>
+                            <option value="dev">Development</option>
+                            <option value="staging">Staging</option>
+                            <option value="prod">Production</option>
+                        </select>
+                    </div>
+                    <button onclick="getAllFlags()">Get Flags</button>
+                    <div id="getAllFlags_response" class="response" style="display:none;"></div>
+                </div>
+
+                <!-- Get Single Flag -->
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span>
+                        Get Single Feature Flag
+                    </div>
+                    <div class="endpoint-desc">Get detailed information about a specific flag</div>
+                    <div class="form-group">
+                        <label for="getFlag_key">Flag Key</label>
+                        <input type="text" id="getFlag_key" placeholder="e.g., new-checkout-flow">
+                    </div>
+                    <button onclick="getFlag()">Get Flag</button>
+                    <div id="getFlag_response" class="response" style="display:none;"></div>
+                </div>
+
+                <!-- Create Flag -->
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method post">POST</span>
+                        Create Feature Flag
+                    </div>
+                    <div class="endpoint-desc">Create a new feature flag</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createFlag_key">Flag Key *</label>
+                            <input type="text" id="createFlag_key" placeholder="e.g., new-checkout-flow">
+                        </div>
+                        <div class="form-group">
+                            <label for="createFlag_name">Display Name *</label>
+                            <input type="text" id="createFlag_name" placeholder="e.g., New Checkout Flow">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="createFlag_desc">Description</label>
+                        <textarea id="createFlag_desc" rows="2" placeholder="Describe what this flag controls..."></textarea>
+                    </div>
+                    <button onclick="createFlag()">Create Flag</button>
+                    <div id="createFlag_response" class="response" style="display:none;"></div>
+                </div>
+
+                <!-- Update Flag -->
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method put">PUT</span>
+                        Update Feature Flag
+                    </div>
+                    <div class="endpoint-desc">Update flag metadata (name, description, archive status)</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="updateFlag_key">Flag Key *</label>
+                            <input type="text" id="updateFlag_key" placeholder="existing-flag-key">
+                        </div>
+                        <div class="form-group">
+                            <label for="updateFlag_name">New Name</label>
+                            <input type="text" id="updateFlag_name" placeholder="Updated name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="updateFlag_desc">New Description</label>
+                        <textarea id="updateFlag_desc" rows="2" placeholder="Updated description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="updateFlag_archived">Archive Status</label>
+                        <select id="updateFlag_archived">
+                            <option value="">No change</option>
+                            <option value="false">Active</option>
+                            <option value="true">Archived</option>
+                        </select>
+                    </div>
+                    <button onclick="updateFlag()">Update Flag</button>
+                    <div id="updateFlag_response" class="response" style="display:none;"></div>
+                </div>
+
+                <!-- Delete Flag -->
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method delete">DELETE</span>
+                        Delete Feature Flag
+                    </div>
+                    <div class="endpoint-desc">Permanently delete a feature flag</div>
+                    <div class="form-group">
+                        <label for="deleteFlag_key">Flag Key *</label>
+                        <input type="text" id="deleteFlag_key" placeholder="flag-to-delete">
+                    </div>
+                    <button class="danger" onclick="deleteFlag()">Delete Flag</button>
+                    <div id="deleteFlag_response" class="response" style="display:none;"></div>
+                </div>
+
+                <!-- Update Flag Assignment -->
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method put">PUT</span>
+                        Update Flag Assignment (Environment Settings)
+                    </div>
+                    <div class="endpoint-desc">Configure how a flag behaves in a specific environment</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assignment_flagKey">Flag Key *</label>
+                            <input type="text" id="assignment_flagKey" placeholder="existing-flag-key">
+                        </div>
+                        <div class="form-group">
+                            <label for="assignment_envKey">Environment *</label>
+                            <select id="assignment_envKey">
+                                <option value="dev">Development</option>
+                                <option value="staging">Staging</option>
+                                <option value="prod">Production</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assignment_enabled">Enabled</label>
+                            <select id="assignment_enabled">
+                                <option value="false">Disabled</option>
+                                <option value="true">Enabled</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="assignment_percentage">Rollout Percentage (0-100)</label>
+                            <input type="number" id="assignment_percentage" min="0" max="100" placeholder="25">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="assignment_rules">Targeting Rules (JSON)</label>
+                        <textarea id="assignment_rules" rows="4" placeholder='{"match": "any", "rules": [{"attribute": "country", "operator": "eq", "value": "US"}]}'></textarea>
+                    </div>
+                    <button onclick="updateAssignment()">Update Assignment</button>
+                    <div id="updateAssignment_response" class="response" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Environments Tab -->
+        <div id="tab-environments" class="tab-content">
+            <div class="api-section">
+                <div class="section-header">Environment Operations</div>
+                
+                <!-- Get Environments -->
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span>
+                        Get All Environments
+                    </div>
+                    <div class="endpoint-desc">Retrieve all available environments</div>
+                    <button onclick="getEnvironments()">Get Environments</button>
+                    <div id="getEnvironments_response" class="response" style="display:none;"></div>
+                </div>
+
+                <!-- Create Environment -->
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method post">POST</span>
+                        Create Environment
+                    </div>
+                    <div class="endpoint-desc">Create a new environment (e.g., dev, staging, prod)</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createEnv_key">Environment Key *</label>
+                            <input type="text" id="createEnv_key" placeholder="e.g., staging">
+                        </div>
+                        <div class="form-group">
+                            <label for="createEnv_name">Display Name *</label>
+                            <input type="text" id="createEnv_name" placeholder="e.g., Staging Environment">
+                        </div>
+                    </div>
+                    <button onclick="createEnvironment()">Create Environment</button>
+                    <div id="createEnvironment_response" class="response" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluation Tab -->
+        <div id="tab-evaluation" class="tab-content">
+            <div class="api-section">
+                <div class="section-header">Flag Evaluation Testing</div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method post">POST</span>
+                        Evaluate Feature Flag
+                    </div>
+                    <div class="endpoint-desc">Test how a flag evaluates for a specific user and context</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eval_flagKey">Flag Key *</label>
+                            <input type="text" id="eval_flagKey" placeholder="flag-to-test">
+                        </div>
+                        <div class="form-group">
+                            <label for="eval_envKey">Environment *</label>
+                            <select id="eval_envKey">
+                                <option value="dev">Development</option>
+                                <option value="staging">Staging</option>
+                                <option value="prod">Production</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="eval_userId">User ID *</label>
+                        <input type="text" id="eval_userId" placeholder="user123" value="test-user">
+                    </div>
+                    <div class="form-group">
+                        <label for="eval_attributes">User Attributes (JSON)</label>
+                        <textarea id="eval_attributes" rows="4" placeholder='{"country": "SA", "planType": "premium", "beta": "true"}'></textarea>
+                    </div>
+                    <button onclick="evaluateFlag()">Evaluate Flag</button>
+                    <div id="evaluateFlag_response" class="response" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Keys Tab -->
+        <div id="tab-apikeys" class="tab-content">
+            <div class="api-section">
+                <div class="section-header">API Key Management</div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method post">POST</span>
+                        Create API Key
+                    </div>
+                    <div class="endpoint-desc">Create a new API key for authentication</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="createKey_name">Key Name *</label>
+                            <input type="text" id="createKey_name" placeholder="e.g., Production Bot">
+                        </div>
+                        <div class="form-group">
+                            <label for="createKey_role">Role *</label>
+                            <select id="createKey_role">
+                                <option value="Reader">Reader (read-only)</option>
+                                <option value="Admin">Admin (full access)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="createKey_key">Plaintext Key *</label>
+                        <input type="text" id="createKey_key" placeholder="your-secret-key-here">
+                    </div>
+                    <button onclick="createApiKey()">Create API Key</button>
+                    <div id="createApiKey_response" class="response" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit Logs Tab -->
+        <div id="tab-audit" class="tab-content">
+            <div class="api-section">
+                <div class="section-header">Audit Logs</div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span>
+                        Get Audit Logs
+                    </div>
+                    <div class="endpoint-desc">View recent administrative actions and changes</div>
+                    <div class="form-group">
+                        <label for="audit_take">Number of Records (max 500)</label>
+                        <input type="number" id="audit_take" min="1" max="500" value="50">
+                    </div>
+                    <button onclick="getAuditLogs()">Get Audit Logs</button>
+                    <div id="getAuditLogs_response" class="response" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+        <!-- End Main Content -->
+    </div>
+
+    <script>
+        // Feature Flags Admin v2.0 - Authentication Required
+        let isAuthenticated = false;
+        let currentApiKey = '';
+
+        console.log('🚀 Feature Flags Admin v2.0 loaded - no auto API calls');
+
+        // Tab Management
+        function showTab(tabName) {
+            if (!isAuthenticated) {
+                alert('Please authenticate first by entering a valid API key.');
+                return;
+            }
+
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Authentication
+        async function authenticateUser() {
+            console.log('🔐 Starting authentication...');
+            
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const authStatus = document.getElementById('authStatus');
+            const authButton = document.getElementById('authButton');
+            const authBar = document.getElementById('authBar');
+            const mainContent = document.getElementById('mainContent');
+
+            if (!apiKey) {
+                authStatus.textContent = 'Please enter an API key';
+                authStatus.className = 'auth-status error';
+                return;
+            }
+
+            // Show loading state
+            authStatus.textContent = 'Authenticating...';
+            authStatus.className = 'auth-status pending';
+            authButton.disabled = true;
+            authButton.textContent = '🔄 Checking...';
+
+            try {
+                console.log('🔑 Testing API key with /api/envs endpoint...');
+                
+                // Test the API key by trying to get environments
+                const response = await fetch('/api/envs', {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+
+                console.log(`📡 API response status: ${response.status}`);
+
+                if (response.ok) {
+                    // Authentication successful
+                    console.log('✅ Authentication successful!');
+                    
+                    isAuthenticated = true;
+                    currentApiKey = apiKey;
+                    
+                    authStatus.textContent = '✅ Authenticated successfully';
+                    authStatus.className = 'auth-status success';
+                    authButton.textContent = '🔓 Authenticated';
+                    authBar.classList.add('authenticated');
+                    
+                    // Enable main content
+                    mainContent.classList.remove('disabled-overlay');
+                    
+                    // Auto-load environments after successful authentication
+                    console.log('📊 Loading environments after authentication...');
+                    await getEnvironments();
+                    
+                    alert('🎉 Authentication successful! You can now use all features.');
+                } else {
+                    // Authentication failed
+                    console.log(`❌ Authentication failed with status: ${response.status}`);
+                    
+                    authStatus.textContent = `❌ Authentication failed (${response.status})`;
+                    authStatus.className = 'auth-status error';
+                    authButton.textContent = '🔓 Try Again';
+                    authButton.disabled = false;
+                }
+            } catch (error) {
+                console.error('🚨 Authentication error:', error);
+                
+                authStatus.textContent = `❌ Connection error: ${error.message}`;
+                authStatus.className = 'auth-status error';
+                authButton.textContent = '🔓 Try Again';
+                authButton.disabled = false;
+            }
+        }
+
+        // API Helper (updated to use stored API key)
+        async function apiCall(method, endpoint, body = null) {
+            if (!isAuthenticated || !currentApiKey) {
+                return { error: 'Not authenticated. Please enter a valid API key first.' };
+            }
+
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': currentApiKey
+                    }
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(endpoint, options);
+                const responseText = await response.text();
+                
+                let responseData;
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch {
+                    responseData = responseText;
+                }
+
+                return {
+                    status: response.status,
+                    ok: response.ok,
+                    data: responseData
+                };
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        function showResponse(elementId, response) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            if (response.error) {
+                element.textContent = `Error: ${response.error}`;
+                element.style.background = '#fee2e2';
+                element.style.color = '#991b1b';
+            } else {
+                element.textContent = `Status: ${response.status}\n\n${JSON.stringify(response.data, null, 2)}`;
+                element.style.background = response.ok ? '#d1fae5' : '#fee2e2';
+                element.style.color = response.ok ? '#065f46' : '#991b1b';
+            }
+        }
+
+        // Add Enter key support for authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Admin panel loaded - no automatic API calls');
+            
+            document.getElementById('apiKey').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    authenticateUser();
+                }
+            });
+            
+            // Focus on API key input
+            document.getElementById('apiKey').focus();
+        });
+
+        // Feature Flag Operations
+        async function getAllFlags() {
+            const envKey = document.getElementById('getFlags_env').value;
+            const endpoint = envKey ? `/api/flags?envKey=${encodeURIComponent(envKey)}` : '/api/flags';
+            const response = await apiCall('GET', endpoint);
+            showResponse('getAllFlags_response', response);
+        }
+
+        async function getFlag() {
+            const key = document.getElementById('getFlag_key').value.trim();
+            if (!key) {
+                showResponse('getFlag_response', { error: 'Flag key is required' });
+                return;
+            }
+            const response = await apiCall('GET', `/api/flags/${encodeURIComponent(key)}`);
+            showResponse('getFlag_response', response);
+        }
+
+        async function createFlag() {
+            const key = document.getElementById('createFlag_key').value.trim();
+            const name = document.getElementById('createFlag_name').value.trim();
+            const description = document.getElementById('createFlag_desc').value.trim();
+
+            if (!key || !name) {
+                showResponse('createFlag_response', { error: 'Key and name are required' });
+                return;
+            }
+
+            const body = { key, name };
+            if (description) body.description = description;
+
+            const response = await apiCall('POST', '/api/flags', body);
+            showResponse('createFlag_response', response);
+        }
+
+        async function updateFlag() {
+            const key = document.getElementById('updateFlag_key').value.trim();
+            const name = document.getElementById('updateFlag_name').value.trim();
+            const description = document.getElementById('updateFlag_desc').value.trim();
+            const archived = document.getElementById('updateFlag_archived').value;
+
+            if (!key) {
+                showResponse('updateFlag_response', { error: 'Flag key is required' });
+                return;
+            }
+
+            const body = {};
+            if (name) body.name = name;
+            if (description) body.description = description;
+            if (archived !== '') body.isArchived = archived === 'true';
+
+            const response = await apiCall('PUT', `/api/flags/${encodeURIComponent(key)}`, body);
+            showResponse('updateFlag_response', response);
+        }
+
+        async function deleteFlag() {
+            const key = document.getElementById('deleteFlag_key').value.trim();
+            if (!key) {
+                showResponse('deleteFlag_response', { error: 'Flag key is required' });
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete flag "${key}"? This cannot be undone.`)) {
+                return;
+            }
+
+            const response = await apiCall('DELETE', `/api/flags/${encodeURIComponent(key)}`);
+            showResponse('deleteFlag_response', response);
+        }
+
+        async function updateAssignment() {
+            const flagKey = document.getElementById('assignment_flagKey').value.trim();
+            const envKey = document.getElementById('assignment_envKey').value;
+            const isEnabled = document.getElementById('assignment_enabled').value === 'true';
+            const percentage = document.getElementById('assignment_percentage').value;
+            const rulesText = document.getElementById('assignment_rules').value.trim();
+
+            if (!flagKey) {
+                showResponse('updateAssignment_response', { error: 'Flag key is required' });
+                return;
+            }
+
+            const body = { isEnabled };
+            
+            if (percentage !== '') {
+                const pct = parseInt(percentage);
+                if (pct < 0 || pct > 100) {
+                    showResponse('updateAssignment_response', { error: 'Percentage must be 0-100' });
+                    return;
+                }
+                body.percentageRollout = pct;
+            }
+
+            if (rulesText) {
+                try {
+                    body.rules = JSON.parse(rulesText);
+                } catch {
+                    showResponse('updateAssignment_response', { error: 'Invalid JSON in rules field' });
+                    return;
+                }
+            }
+
+            const response = await apiCall('PUT', `/api/flags/${encodeURIComponent(flagKey)}/assignments/${encodeURIComponent(envKey)}`, body);
+            showResponse('updateAssignment_response', response);
+        }
+
+        // Environment Operations
+        async function getEnvironments() {
+            const response = await apiCall('GET', '/api/envs');
+            showResponse('getEnvironments_response', response);
+        }
+
+        async function createEnvironment() {
+            const key = document.getElementById('createEnv_key').value.trim();
+            const name = document.getElementById('createEnv_name').value.trim();
+
+            if (!key || !name) {
+                showResponse('createEnvironment_response', { error: 'Key and name are required' });
+                return;
+            }
+
+            const response = await apiCall('POST', '/api/envs', { key, name });
+            showResponse('createEnvironment_response', response);
+        }
+
+        // Evaluation
+        async function evaluateFlag() {
+            const flagKey = document.getElementById('eval_flagKey').value.trim();
+            const envKey = document.getElementById('eval_envKey').value;
+            const userId = document.getElementById('eval_userId').value.trim();
+            const attributesText = document.getElementById('eval_attributes').value.trim();
+
+            if (!flagKey || !userId) {
+                showResponse('evaluateFlag_response', { error: 'Flag key and user ID are required' });
+                return;
+            }
+
+            const body = { envKey, userId };
+            
+            if (attributesText) {
+                try {
+                    body.attributes = JSON.parse(attributesText);
+                } catch {
+                    showResponse('evaluateFlag_response', { error: 'Invalid JSON in attributes field' });
+                    return;
+                }
+            }
+
+            const response = await apiCall('POST', `/api/evaluate/${encodeURIComponent(flagKey)}`, body);
+            showResponse('evaluateFlag_response', response);
+        }
+
+        // API Key Management
+        async function createApiKey() {
+            const name = document.getElementById('createKey_name').value.trim();
+            const role = document.getElementById('createKey_role').value;
+            const plaintextKey = document.getElementById('createKey_key').value.trim();
+
+            if (!name || !plaintextKey) {
+                showResponse('createApiKey_response', { error: 'Name and plaintext key are required' });
+                return;
+            }
+
+            const response = await apiCall('POST', '/api/keys', { name, role, plaintextKey });
+            showResponse('createApiKey_response', response);
+        }
+
+        // Audit Logs
+        async function getAuditLogs() {
+            const take = document.getElementById('audit_take').value || 50;
+            const response = await apiCall('GET', `/api/audit?take=${take}`);
+            showResponse('getAuditLogs_response', response);
+        }
+    </script>
+</body>
+</html>

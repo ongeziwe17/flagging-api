@@ -1,0 +1,41 @@
+name: Feature Flagging API Workflow
+
+on:
+  push:
+    branches: [ main, development, staging, "ci-workflow-setup" ]
+
+  pull_request:
+    branches: [ main, development, staging, "ci-workflow-setup" ]
+
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build App with Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      image_tags: ${{ steps.docker-tag-ghcr.outputs.image_tags }}
+    if: ${{ github.event_name == 'pull_request' }} || ${{ github.ref == 'refs/heads/main' }} || ${{ github.ref == 'refs/heads/development' }} || ${{ github.ref == 'refs/heads/staging' }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build images and start containers
+      run: |
+        docker-compose build
+        docker-compose up -d
+
+    - name: Wait for containers to be ready
+      run: sleep 10
+
+    - name: Run a test command inside dev container
+      run: docker exec lin-dev ls /home/dev/FeatureFlags.Api
+
+    - name: Cleanup
+      if: always()
+      run: docker-compose down
+    
+    

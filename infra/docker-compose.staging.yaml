@@ -1,0 +1,32 @@
+services:
+  api:
+    build: .
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      ADMIN_KEY: ${ADMIN_KEY}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ConnectionStrings__Default: "Server=sql-server,1433;Database=FeatureFlags;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      ConnectionStrings__Redis: "redis:6379"
+    ports:
+      - "8081:8080"
+    depends_on:
+      - redis
+      - sql-server
+
+  staging:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lin-staging
+    hostname: lin-staging
+    networks:
+      - ubuntu_net
+    ports:
+      - "2223:22"
+    volumes:
+      - ./src/FeatureFlags.Api:/home/dev/FeatureFlags.Api
+    restart: unless-stopped
+
+networks:
+  ubuntu_net:
+    driver: bridge

@@ -1,0 +1,40 @@
+FROM ubuntu:22.04
+
+# Install OpenSSH server and clean up
+RUN apt-get update && apt-get install -y openssh-server && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create SSH runtime directory
+RUN mkdir /var/run/sshd
+
+# Create a non-root user 'devuser' (change username if you want)
+ARG SSH_USER=devuser
+RUN useradd -m -s /bin/bash $SSH_USER
+
+# Create SSH directory for the user
+RUN mkdir -p /home/$SSH_USER/.ssh && \
+    chown -R $SSH_USER:$SSH_USER /home/$SSH_USER/.ssh && \
+    chmod 700 /home/$SSH_USER/.ssh
+
+# Copy authorized_keys (to be added during build or mount at runtime)
+# This expects the public key to be in the build context as `id_rsa.pub`
+COPY id_rsa.pub /home/$SSH_USER/.ssh/authorized_keys
+
+# Set permissions on authorized_keys
+RUN chown $SSH_USER:$SSH_USER /home/$SSH_USER/.ssh/authorized_keys && \
+    chmod 600 /home/$SSH_USER/.ssh/authorized_keys
+
+# Disable root login for security
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+# Ensure password authentication is disabled (only key auth)
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+
+# Keep PAM enabled for security
+RUN sed -i 's/usePAM no/usePAM yes/' /etc/ssh/sshd_config
+
+# Expose SSH port
+EXPOSE 22
+
+# Run sshd in foreground
+CMD ["/usr/sbin/sshd", "-D"]
