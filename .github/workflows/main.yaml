@@ -92,4 +92,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Output image digest
-        run: echo "Image digest: ${{ steps.build-and-push.outputs.digest }}"
+        run: |
+          echo "Image digest: $DIGEST"
+          env:
+            DIGEST: ${{ steps.build-and-push.outputs.digest }}
