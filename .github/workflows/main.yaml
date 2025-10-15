@@ -3,12 +3,12 @@ name: CI / CD
 on:
   pull_request:
     branches:
-      - main
+      - master
       - development
       - staging
   push:
     branches:
-      - main
+      - master
       - development
       - staging
   workflow_dispatch:
@@ -55,7 +55,7 @@ jobs:
   publish-image:
     name: Publish image to GHCR
     needs: build-and-test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development' || github.ref == 'refs/heads/staging')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/development' || github.ref == 'refs/heads/staging')
     runs-on: ubuntu-latest
 
     steps:
