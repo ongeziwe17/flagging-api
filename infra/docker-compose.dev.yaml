@@ -1,20 +1,24 @@
 services:
   api:
-    build: .
+    build:
+      context: ../src/flag-api
+      dockerfile: Dockerfile
     environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # App bootstrap/admin/config
+      Admin__BootstrapAdminKey: ${ADMIN_KEY}
+      # Database and cache secrets
       SA_PASSWORD: ${SA_PASSWORD}
-      ADMIN_KEY: ${ADMIN_KEY}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      ConnectionStrings__Default: "Server=sql-server,1433;Database=${DATABASE_NAME};User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
-      ConnectionStrings__Redis: "redis:6379"
+      # Connection strings (override appsettings)
+      ConnectionStrings__Default: "Server=sql-server,1433;Database=${DATABASE_NAME};User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
     ports:
       - "8080:8080"
     depends_on:
-      redis:
-        condition: service_healthy
-      sql-server:
-        condition: service_healthy
+      - redis
+      - sql-server
 
   dev:
     build:
@@ -27,7 +31,7 @@ services:
     ports:
       - "2222:22"
     volumes:
-      - ./src/FeatureFlags.Api:/home/dev/FeatureFlags.Api
+      - ../src/flag-api:/home/dev/FeatureFlags.Api
     restart: unless-stopped
 
 networks:

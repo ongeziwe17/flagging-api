@@ -7,11 +7,6 @@ services:
       - "6379:6379"
     volumes:
       - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
 
   sql-server:
     build:
@@ -24,11 +19,6 @@ services:
       - "1433:1433"
     volumes:
       - sqlserverdata:/var/opt/mssql
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -U sa -P $${SA_PASSWORD} -Q 'SELECT 1'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
 
 volumes:
   redisdata:

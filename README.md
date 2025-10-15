@@ -1,20 +1,23 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+**Feature Flags API**
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+- Minimal ASP.NET Core 8 API for feature flags with SQL Server storage and Redis caching.
+- Includes Docker Compose environments for development, staging, and production.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+**Dev Setup**
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+- Prerequisites: Docker Desktop, Docker Compose v2, .NET 8 SDK (optional for local dev without containers).
+- Create an env file: copy `infra/.env.dev.example` to `infra/.env.dev` and set strong secrets.
+- Start stack: `docker compose -f infra/docker-compose.yaml -f infra/docker-compose.dev.yaml --env-file infra/.env.dev up -d --build`
+- API: `http://localhost:8080` (serves `wwwroot/admin` UI and `/api/*`).
+- SQL Server: `localhost:1433` (user `sa`, password from env). Redis: `localhost:6379` (password from env).
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+**Staging/Prod**
+
+- Use the same base file with overlays: staging `infra/docker-compose.staging.yaml`, prod `infra/docker-compose.prod.yaml`.
+- Example: `docker compose -f infra/docker-compose.yaml -f infra/docker-compose.staging.yaml --env-file infra/.env.staging up -d --build`
+- Ensure `Admin__BootstrapAdminKey` (via `ADMIN_KEY`) is set before first run to bootstrap an admin API key.
+
+**Notes**
+
+- The API runs EF Core migrations at startup and seeds default environments (dev, staging, prod).
+- Override connection strings via env: `ConnectionStrings__Default`, `ConnectionStrings__Redis`.

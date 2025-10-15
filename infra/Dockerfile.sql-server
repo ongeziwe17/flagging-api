@@ -2,17 +2,21 @@ FROM mcr.microsoft.com/mssql/server:2022-latest
 
 USER root
 
-RUN apt-get update && \
-    apt-get install -y curl gnupg apt-transport-https ca-certificates && \
-    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg && \
-    echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/microsoft.gpg] https://packages.microsoft.com/debian/11/prod bullseye main" > /etc/apt/sources.list.d/mssql-release.list && \
-    apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev && \
-    ln -sfn /opt/mssql-tools/bin/sqlcmd /usr/bin/sqlcmd && \
-    ln -sfn /opt/mssql-tools/bin/bcp /usr/bin/bcp && \
-    apt-get clean && \
+# Install Microsoft repo and mssql-tools18 for Ubuntu base image
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl gnupg apt-transport-https ca-certificates; \
+    mkdir -p /etc/apt/keyrings; \
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg; \
+    . /etc/os-release; \
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/${VERSION_ID}/prod ${UBUNTU_CODENAME} main" > /etc/apt/sources.list.d/microsoft.list; \
+    apt-get update; \
+    ACCEPT_EULA=Y apt-get install -y --no-install-recommends mssql-tools18 unixodbc-dev; \
+    ln -sfn /opt/mssql-tools18/bin/sqlcmd /usr/bin/sqlcmd; \
+    ln -sfn /opt/mssql-tools18/bin/bcp /usr/bin/bcp; \
+    apt-get clean; \
     rm -rf /var/lib/apt/lists/*
 
-ENV PATH="$PATH:/opt/mssql-tools/bin"
+# sqlcmd is now on PATH
 
 USER mssql
