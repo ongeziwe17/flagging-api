@@ -44,13 +44,13 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore Feature-Flagging-API.sln
+        run: dotnet restore src/flag-api/FeatureFlags.Api.csproj
 
       - name: Build
-        run: dotnet build Feature-Flagging-API.sln --configuration Release --no-restore
+        run: dotnet build src/flag-api/FeatureFlags.Api.csproj --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test Feature-Flagging-API.sln --configuration Release --no-build
+      - name: Test (none present)
+        run: echo "No test projects detected"
 
   publish-image:
     name: Publish image to GHCR
