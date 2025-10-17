@@ -2,16 +2,12 @@ name: CI / CD
 
 on:
   pull_request:
-    branches:
-      - master
-      - development
-      - staging
+    branches: [ master, develop, ]
+
   push:
-    branches:
-      - master
-      - development
-      - staging
-  workflow_dispatch:
+    branches: [ master, develop ]
+
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -55,7 +51,7 @@ jobs:
   publish-image:
     name: Publish image to GHCR
     needs: build-and-test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/development' || github.ref == 'refs/heads/staging')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
 
     steps:
@@ -98,7 +94,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Output image digest
-        run: |
-          echo "Image digest: $DIGEST"
-          env:
-            DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: echo "Image digest - $DIGEST"
+        env:
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
