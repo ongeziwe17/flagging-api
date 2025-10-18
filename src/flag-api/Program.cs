@@ -3,6 +3,7 @@ using FeatureFlags.Api.Auth;
 using FeatureFlags.Api.Data;
 using FeatureFlags.Api.Models;
 using FeatureFlags.Api.Services;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -51,7 +52,43 @@ app.UseStaticFiles();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
+    var startupLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    const int maxDbRetries = 30;
+    var retryDelay = TimeSpan.FromSeconds(5);
+    var dbReady = false;
+    Exception? lastDbException = null;
+
+    for (var attempt = 1; attempt <= maxDbRetries && !dbReady; attempt++)
+    {
+        try
+        {
+            await db.Database.MigrateAsync();
+            startupLogger.LogInformation("Database migrations completed on attempt {Attempt}.", attempt);
+            dbReady = true;
+        }
+        catch (Exception ex) when (IsConnectivityError(ex) && attempt < maxDbRetries)
+        {
+            lastDbException = ex;
+            startupLogger.LogWarning(ex,
+                "Database migration failed (attempt {Attempt}/{Max}). Waiting {DelaySeconds}s before retrying.",
+                attempt, maxDbRetries, retryDelay.TotalSeconds);
+            await Task.Delay(retryDelay);
+        }
+        catch (Exception ex) when (IsConnectivityError(ex))
+        {
+            lastDbException = ex;
+            break;
+        }
+    }
+
+    if (!dbReady)
+    {
+        startupLogger.LogCritical(lastDbException,
+            "Unable to run database migrations after {Max} attempts. The application cannot start.",
+            maxDbRetries);
+        throw lastDbException ?? new InvalidOperationException("Database migrations failed before startup.");
+    }
 
     async Task EnsureEnv(string key, string name)
     {
@@ -343,6 +380,16 @@ app.MapGet("/api/audit", async (int take, AppDbContext db) =>
 app.MapGet("/", () => Results.Redirect("/admin/"));
 
 app.Run();
+
+static bool IsConnectivityError(Exception ex)
+{
+    return ex switch
+    {
+        SqlException => true,
+        InvalidOperationException { InnerException: SqlException } => true,
+        _ => false
+    };
+}
 
 static async Task AuditAsync(AppDbContext db, HttpContext ctx, string action, string entityType, string entityId, object payload)
 {
