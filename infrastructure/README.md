@@ -7,7 +7,7 @@ This directory contains the Terraform configuration for the Feature Flagging pla
 ```
 infrastructure/
 ├── modules/
-│   ├── compute/            # Lambda + API Gateway + Secrets automation
+│   ├── compute/            # ECS Fargate service, ALB, and secret injection
 │   └── networking/         # VPC, subnets, routing, optional flow logs
 ├── environments/
 │   ├── dev/                # Developer sandbox deployment
@@ -43,14 +43,16 @@ Creates a minimal-cost VPC with public subnets, routing, and optional VPC flow l
 
 ### Compute
 
-Deploys a Python-based Lambda function, exposes it through an HTTP API Gateway, and provisions:
+Provisions an AWS Fargate cluster fronted by an Application Load Balancer so existing container images can be deployed with zero
+ infrastructure changes. The module creates:
 
-- Dedicated security group restricted to egress over HTTPS
-- CloudWatch logging for both Lambda and API Gateway
-- Optional Secrets Manager secret containing a generated signing key
-- Alarm routing via SNS (email subscription configured by environment)
+- ECS cluster and task/service definitions tuned for Fargate
+- Public ALB, target group, and security groups restricting ingress to approved CIDR ranges
+- CloudWatch log groups with adjustable retention
+- IAM task execution role wired for Secrets Manager and SSM Parameter Store lookups
 
-The module prefers serverless components to minimize idle cost while providing hooks for expanding functionality.
+Provide the container image URI (ECR, Docker Hub, etc.), desired CPU/memory, and any required environment variables or secrets
+in each environment configuration.
 
 ## Environments
 
@@ -58,6 +60,7 @@ Each environment directory (`dev`, `prod`) defines:
 
 - Provider configuration and backend linkage
 - Module composition with environment-specific CIDR ranges and tagging
+- Compute module inputs describing the container image, port, capacity, and runtime configuration
 - AWS Budgets with ACTUAL/FORECASTED thresholds tied to email alerts
 - Least-privilege IAM role for Terraform deployment (GitHub Actions OIDC)
 
@@ -86,11 +89,11 @@ The GitHub Actions workflows (`terraform-dev.yml`, `terraform-prod.yml`) automat
 
 ## Secret management
 
-The compute module provisions an AWS Secrets Manager secret per environment (toggle with `create_private_secret`) and optionally mirrors the secret ARN into AWS Systems Manager Parameter Store for discovery. IAM policies enforce that Terraform manages only resources tagged `ManagedBy = Terraform`, and Lambda functions receive the secret ARN via environment variables. Additional secrets (database credentials, API keys) should be stored in Secrets Manager (or Parameter Store when appropriate) and referenced at runtime via the provided IAM role.
+Inject sensitive configuration by populating `environment_secrets` (Secrets Manager ARNs) or `environment_parameters` (SSM parameter ARNs) in each environment's variables file. Terraform grants the ECS task execution role read access to those secrets so containers can resolve them at start-up. Non-sensitive values can be added through `environment_variables`.
 
 ## Cost management
 
-- **Serverless-first design** keeps compute spend to a minimum (pay-per-request Lambda & HTTP API Gateway).
+- **Right-sized Fargate tasks**: default CPU/memory fit small workloads; scale counts or resources only when needed.
 - **Budgets and alerts** raise ACTUAL and FORECASTED notifications to the configured email recipients.
 - **Small CIDR ranges** limit VPC IP usage and avoid unnecessary NAT Gateways.
 - **Flow logs optional**: disabled in dev, enabled in prod for security monitoring.

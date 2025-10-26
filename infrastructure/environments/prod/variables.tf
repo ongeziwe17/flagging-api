@@ -33,3 +33,50 @@ variable "github_oidc_provider_arn" {
   type        = string
   default     = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
 }
+
+variable "container_image" {
+  description = "Container image URI for the API."
+  type        = string
+}
+
+variable "container_port" {
+  description = "Port exposed by the API container."
+  type        = number
+  default     = 8080
+}
+
+variable "task_cpu" {
+  description = "Fargate task CPU units."
+  type        = number
+  default     = 1024
+}
+
+variable "task_memory" {
+  description = "Fargate task memory (MiB)."
+  type        = number
+  default     = 2048
+}
+
+variable "desired_count" {
+  description = "Number of tasks to run in prod."
+  type        = number
+  default     = 2
+}
+
+variable "environment_variables" {
+  description = "Plain-text environment variables for the API."
+  type        = map(string)
+  default     = {}
+}
+
+variable "environment_secrets" {
+  description = "Map of environment variable names to Secrets Manager ARNs."
+  type        = map(string)
+  default     = {}
+}
+
+variable "environment_parameters" {
+  description = "Map of environment variable names to SSM parameter ARNs."
+  type        = map(string)
+  default     = {}
+}

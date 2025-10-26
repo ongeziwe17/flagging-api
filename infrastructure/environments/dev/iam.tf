@@ -69,18 +69,21 @@ data "aws_iam_policy_document" "terraform_permissions" {
   }
 
   statement {
-    sid     = "LambdaSecretsIam"
+    sid     = "EcsAndIam"
     effect  = "Allow"
     actions = [
-      "lambda:CreateFunction",
-      "lambda:DeleteFunction",
-      "lambda:GetFunction",
-      "lambda:ListVersionsByFunction",
-      "lambda:PublishVersion",
-      "lambda:TagResource",
-      "lambda:UntagResource",
-      "lambda:UpdateFunctionCode",
-      "lambda:UpdateFunctionConfiguration",
+      "ecs:CreateCluster",
+      "ecs:DeleteCluster",
+      "ecs:Describe*",
+      "ecs:List*",
+      "ecs:RegisterTaskDefinition",
+      "ecs:DeregisterTaskDefinition",
+      "ecs:CreateService",
+      "ecs:UpdateService",
+      "ecs:DeleteService",
+      "ecs:PutAttributes",
+      "ecs:TagResource",
+      "ecs:UntagResource",
       "iam:CreateRole",
       "iam:DeleteRole",
       "iam:GetRole",
@@ -88,6 +91,21 @@ data "aws_iam_policy_document" "terraform_permissions" {
       "iam:UntagRole",
       "iam:PutRolePolicy",
       "iam:DeleteRolePolicy",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEqualsIfExists"
+      variable = "aws:ResourceTag/ManagedBy"
+      values   = ["Terraform"]
+    }
+  }
+
+  statement {
+    sid     = "SecretsAndParameters"
+    effect  = "Allow"
+    actions = [
       "secretsmanager:CreateSecret",
       "secretsmanager:DeleteSecret",
       "secretsmanager:DescribeSecret",
@@ -112,25 +130,36 @@ data "aws_iam_policy_document" "terraform_permissions" {
   }
 
   statement {
+    sid     = "ElasticLoadBalancing"
+    effect  = "Allow"
+    actions = [
+      "elasticloadbalancing:AddTags",
+      "elasticloadbalancing:CreateListener",
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:CreateTargetGroup",
+      "elasticloadbalancing:DeleteListener",
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:DeleteTargetGroup",
+      "elasticloadbalancing:DeregisterTargets",
+      "elasticloadbalancing:Describe*",
+      "elasticloadbalancing:ModifyListener",
+      "elasticloadbalancing:ModifyLoadBalancerAttributes",
+      "elasticloadbalancing:ModifyTargetGroup",
+      "elasticloadbalancing:ModifyTargetGroupAttributes",
+      "elasticloadbalancing:RegisterTargets",
+      "elasticloadbalancing:RemoveTags",
+      "elasticloadbalancing:SetSecurityGroups"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
     sid     = "PassRole"
     effect  = "Allow"
     actions = ["iam:PassRole"]
     resources = [
       "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${local.environment}-*"
     ]
-  }
-
-  statement {
-    sid     = "ApiGateway"
-    effect  = "Allow"
-    actions = [
-      "apigateway:GET",
-      "apigateway:POST",
-      "apigateway:PATCH",
-      "apigateway:DELETE",
-      "apigateway:PUT"
-    ]
-    resources = ["*"]
   }
 
   statement {

@@ -21,6 +21,14 @@ locals {
     Project     = "feature-flagging-api"
     ManagedBy   = "Terraform"
   }
+  secret_list = [for name, arn in var.environment_secrets : {
+    name = name
+    arn  = arn
+  }]
+  parameter_list = [for name, arn in var.environment_parameters : {
+    name = name
+    arn  = arn
+  }]
 }
 
 module "networking" {
@@ -36,10 +44,18 @@ module "compute" {
   source      = "../../modules/compute"
   name        = var.name_prefix
   environment = local.environment
+  aws_region  = var.aws_region
   subnet_ids  = module.networking.public_subnet_ids
   vpc_id      = module.networking.vpc_id
   tags        = merge(local.common_tags, { Component = "compute" })
-  alarm_email = var.alarm_email
+  container_image        = var.container_image
+  container_port         = var.container_port
+  desired_count          = var.desired_count
+  task_cpu               = var.task_cpu
+  task_memory            = var.task_memory
+  environment_variables  = var.environment_variables
+  secrets                = local.secret_list
+  ssm_parameters         = local.parameter_list
 }
 
 resource "aws_budgets_budget" "monthly" {
