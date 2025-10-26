@@ -1,0 +1,94 @@
+name: "Terraform Prod"
+
+on:
+  pull_request:
+    paths:
+      - 'infrastructure/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/**'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Choose plan or apply"
+        required: true
+        default: "plan"
+        type: choice
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  plan:
+    name: terraform fmt/validate/plan (prod)
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      TF_VAR_github_actions_repository: ${{ github.repository }}
+      TF_VAR_github_oidc_provider_arn: ${{ secrets.GITHUB_OIDC_PROVIDER_ARN }}
+      TF_VAR_alarm_email: ${{ secrets.TERRAFORM_ALERT_EMAIL_PROD }}
+    defaults:
+      run:
+        working-directory: infrastructure/environments/prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PROD_TERRAFORM_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+      - name: Terraform init
+        run: terraform init -input=false
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan -input=false
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-tfplan
+          path: infrastructure/environments/prod/tfplan
+
+  apply:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
+    name: terraform apply (prod)
+    needs: plan
+    runs-on: ubuntu-latest
+    environment:
+      name: prod-terraform-apply
+      url: https://console.aws.amazon.com/
+    env:
+      TF_VAR_github_actions_repository: ${{ github.repository }}
+      TF_VAR_github_oidc_provider_arn: ${{ secrets.GITHUB_OIDC_PROVIDER_ARN }}
+      TF_VAR_alarm_email: ${{ secrets.TERRAFORM_ALERT_EMAIL_PROD }}
+    defaults:
+      run:
+        working-directory: infrastructure/environments/prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PROD_TERRAFORM_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Terraform init
+        run: terraform init -input=false
+      - name: Download plan
+        uses: actions/download-artifact@v4
+        with:
+          name: prod-tfplan
+          path: infrastructure/environments/prod
+      - name: Terraform apply
+        run: terraform apply -input=false tfplan
